@@ -1,0 +1,7 @@
+source "D:/ESP IDF/.espressif/v5.5.6/esp-idf/components/bootloader/Kconfig.projbuild"
+source "D:/ESP IDF/.espressif/v5.5.6/esp-idf/components/esp_app_format/Kconfig.projbuild"
+source "D:/ESP IDF/.espressif/v5.5.6/esp-idf/components/esp_rom/Kconfig.projbuild"
+source "D:/ESP IDF/.espressif/v5.5.6/esp-idf/components/esptool_py/Kconfig.projbuild"
+source "D:/ESP IDF/.espressif/v5.5.6/esp-idf/components/partition_table/Kconfig.projbuild"
+source "D:/Program/2026ProjectWeek/fork data/eda-robotpro-main/main/Kconfig.projbuild"
+source "D:/Program/2026ProjectWeek/fork data/eda-robotpro-main/managed_components/espressif__esp-sr/Kconfig.projbuild"
