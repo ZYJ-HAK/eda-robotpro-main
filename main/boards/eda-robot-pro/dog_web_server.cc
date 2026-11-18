@@ -148,6 +148,20 @@ esp_err_t DogWebServer::Start() {
   return ESP_OK;
 }
 
+void DogWebServer::Stop() {
+  if (server_ != nullptr) {
+    httpd_stop(server_);
+    server_ = nullptr;
+  }
+  // 只在确实由本模块拉起过热点时才关射频，
+  // 否则会把 AI 模式的 STA 连接一起断掉。
+  if (ap_up_) {
+    esp_wifi_stop();
+    ap_up_ = false;
+    ESP_LOGI(TAG, "热点已关闭");
+  }
+}
+
 void DogWebServer::LoadToken() {
   Settings settings(DOG_WEB_TOKEN_NVS_NS, true);
   token_ = settings.GetString(DOG_WEB_TOKEN_NVS_KEY, "");
@@ -200,6 +214,7 @@ esp_err_t DogWebServer::StartAccessPoint() {
 
   err = esp_wifi_start();
   if (err != ESP_OK) return err;
+  ap_up_ = true;
 
   // 关闭省电，保证网页响应及时。
   esp_wifi_set_ps(WIFI_PS_NONE);

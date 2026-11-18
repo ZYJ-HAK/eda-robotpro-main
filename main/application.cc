@@ -892,3 +892,29 @@ void Application::SetAecMode(AecMode mode) {
 void Application::PlaySound(const std::string_view& sound) {
     audio_service_.PlaySound(sound);
 }
+
+// ==================== 模式切换（自研新增） ====================
+// 说明：这段是唯一改动到上游 application.cc 的地方，由 DogModeManager 调用。
+// 目的只有一个：把小智对 I2S 的占用让出来，避免与外接模式并发写同一路输出。
+
+void Application::EnterExternalMode() {
+    if (external_mode_) {
+        return;
+    }
+    external_mode_ = true;
+    ESP_LOGI(TAG, "进入外接模式：停止音频服务，让出 I2S");
+    AbortSpeaking(kAbortReasonNone);
+    if (protocol_ != nullptr && protocol_->IsAudioChannelOpened()) {
+        protocol_->CloseAudioChannel();
+    }
+    audio_service_.Stop();
+}
+
+void Application::ExitExternalMode() {
+    if (!external_mode_) {
+        return;
+    }
+    external_mode_ = false;
+    ESP_LOGI(TAG, "退出外接模式：恢复音频服务");
+    audio_service_.Start();
+}

@@ -54,6 +54,14 @@ public:
     void ToggleChatState();
     void StartListening();
     void StopListening();
+
+    /*
+     * 模式切换用：让小智让出音频通道，供网页遥控 / BLE 音箱独占 I2S。
+     * EnterExternalMode 会停音频服务并关闭协议音频通道；
+     * ExitExternalMode 重新拉起音频服务。两者都可重复调用。
+     */
+    void EnterExternalMode();
+    void ExitExternalMode();
     void Reboot();
     void WakeWordInvoke(const std::string& wake_word);
     bool UpgradeFirmware(Ota& ota, const std::string& url = "");
@@ -81,6 +89,9 @@ private:
 
     bool has_server_time_ = false;
     bool aborted_ = false;
+    // 处于外接模式（网页遥控 / BLE 音箱）时，小智的音频服务被停掉，
+    // 由 DogModeManager 负责置位与恢复。
+    bool external_mode_ = false;
     int clock_ticks_ = 0;
     TaskHandle_t check_new_version_task_handle_ = nullptr;
     TaskHandle_t main_event_loop_task_handle_ = nullptr;

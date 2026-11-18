@@ -37,4 +37,9 @@
 // EDA机器狗版本
 #define EDA_ROBOT_PRO_VERSION "1.0.0"
 
+// 模式切换键 KEY2（板上丝印 KEY2）。
+// 与 TOUCH_BUTTON_GPIO(14) 的按住说话互不干扰：
+// 短按 = 顺序切换模式，长按 = 仅 AI 模式下进入配网。
+#define DOG_KEY2_GPIO GPIO_NUM_11
+
 #endif // _BOARD_CONFIG_H_

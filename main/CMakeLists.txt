@@ -668,11 +668,25 @@ if(CONFIG_IDF_TARGET_ESP32)
                              )
 endif()
 
+# 2026-11-18 新增：BLE 音箱模式用到 NimBLE。
+# main 不能声明 REQUIRES/PRIV_REQUIRES（会失去“默认依赖全部组件”的行为），
+# 因此这里手动把 bt 的头文件目录并入 INCLUDE_DIRS。
+idf_component_get_property(dog_bt_incs bt INCLUDE_DIRS)
+if(dog_bt_incs)
+    list(APPEND INCLUDE_DIRS ${dog_bt_incs})
+endif()
+
 idf_component_register(SRCS ${SOURCES}
                     EMBED_FILES ${LANG_SOUNDS} ${COMMON_SOUNDS}
                     INCLUDE_DIRS ${INCLUDE_DIRS}
                     WHOLE_ARCHIVE
                     )
+
+# 2026-11-18 新增：BLE 音箱模式用到 NimBLE，需要链接 bt 组件。
+idf_component_get_property(dog_bt_lib bt COMPONENT_LIB)
+if(dog_bt_lib)
+    target_link_libraries(${COMPONENT_LIB} PRIVATE ${dog_bt_lib})
+endif()
 
 # Use target_compile_definitions to define BOARD_TYPE, BOARD_NAME
 # If BOARD_NAME is empty, use BOARD_TYPE

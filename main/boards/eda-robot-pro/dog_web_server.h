@@ -22,6 +22,9 @@ class DogWebServer {
   /* 起热点 + 起 HTTP 服务。可重复调用，第二次直接返回 ESP_OK。 */
   esp_err_t Start();
 
+  /* 停 HTTP 服务并关掉热点，供模式切换释放资源。 */
+  void Stop();
+
   const char* GetSsid() const { return ssid_.c_str(); }
   const char* GetUrl() const { return url_.c_str(); }
   bool IsRunning() const { return server_ != nullptr; }
@@ -38,6 +41,7 @@ class DogWebServer {
   bool Authorized(httpd_req_t* req);
 
   httpd_handle_t server_ = nullptr;
+  bool ap_up_ = false;
   std::string ssid_;
   std::string url_;
   std::string token_;

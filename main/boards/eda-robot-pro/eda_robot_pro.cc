@@ -5,6 +5,7 @@
 #include "application.h"
 #include "button.h"
 #include "config.h"
+#include "dog_mode.h"
 #include "dog_web_config.h"
 #include "dog_web_server.h"
 #include "mcp_server.h"
@@ -123,28 +124,28 @@ public:
 
 
     /*
-     * 网络启动。
+     * 网络启动 = 模式启动。
      *
-     * DOG_WEB_AP_AT_BOOT = 1（默认，对应「通电即热点」的需求）：
-     *   不启动 STA，直接开热点并把手机引导到内置网页。
-     *   代价是此模式下云端语音不可用 —— 热点与 STA 共用一颗射频，
-     *   同时开会互相拖慢，也会让唤醒链路时断时续。
+     * 三种模式由 KEY2（GPIO11）切换，切换为热切换、不重启。
+     * 这里按 NVS 里记录的模式分流：AI 模式才去连路由器，
+     * 网页遥控 / BLE 音箱模式则让小智让出音频通道并接管。
      *
-     * DOG_WEB_AP_AT_BOOT = 0：走小智原有流程（连 WiFi、语音可用），
-     *   需要遥控时再进热点。改这一个宏即可，不必改本文件。
+     * 注意：本函数不再阻塞。原先把 DOG_WEB_AP_AT_BOOT 写成无限循环，
+     * 会连带把按键与热切换一起卡死。
      */
     virtual void StartNetwork() override {
-#if DOG_WEB_AP_AT_BOOT
-        ESP_LOGI(TAG, "开机进入热点模式，云端语音本次不可用");
-        DogWebServer::GetInstance().Start();
-        while (true) {
-            vTaskDelay(pdMS_TO_TICKS(10000));
+        auto& modes = DogModeManager::GetInstance();
+        modes.SetProvisioningHandler([this]() {
+            // 仅 AI 模式会走到这里：沿用上游的配网流程（长按进配网）。
+            EnterWifiConfigMode();
+        });
+        modes.Init();
+
+        if (modes.GetMode() == DogMode::kAi) {
+            WifiBoard::StartNetwork();
+        } else {
+            ESP_LOGI(TAG, "当前为 %s，跳过 STA 连接", modes.GetModeName());
         }
-#else
-        WifiBoard::StartNetwork();
-        // 能走到这里说明 STA 已经连上，此时再开热点会抢占射频，
-        // 所以仅在需要遥控时由调用方显式触发。
-#endif
     }
 
     virtual AudioCodec* GetAudioCodec() override {
