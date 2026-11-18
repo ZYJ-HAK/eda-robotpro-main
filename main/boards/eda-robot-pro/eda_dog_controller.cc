@@ -10,6 +10,8 @@
 #include "application.h"
 #include "board.h"
 #include "config.h"
+#include "dog_web_api.h"
+#include "dog_web_config.h"
 #include "eda_dog_movements.h"
 #include "mcp_server.h"
 #include "sdkconfig.h"
@@ -380,6 +382,36 @@ public:
     ESP_LOGI(TAG, "MCP工具注册完成");
   }
 
+  // ==================== 网页控制接口 ====================
+  // 自研层新增。刻意不新增任何 PWM 路径：所有动作仍然只经 QueueAction
+  // 进入同一个动作任务，避免两个任务同时写同一组 ledc 通道。
+  esp_err_t SubmitMotion(DogMotion motion, int steps, int period,
+                         int direction) {
+    if (is_action_in_progress_) {
+      return ESP_ERR_INVALID_STATE;
+    }
+    if (steps < DOG_WEB_STEPS_MIN) steps = DOG_WEB_STEPS_MIN;
+    if (steps > DOG_WEB_STEPS_MAX) steps = DOG_WEB_STEPS_MAX;
+    if (period < DOG_WEB_PERIOD_MIN) period = DOG_WEB_PERIOD_MIN;
+    if (period > DOG_WEB_PERIOD_MAX) period = DOG_WEB_PERIOD_MAX;
+    QueueAction(static_cast<int>(motion), steps, period,
+                direction < 0 ? -1 : 1, 0);
+    return ESP_OK;
+  }
+
+  esp_err_t EmergencyStop() {
+    if (action_task_handle_ != nullptr) {
+      vTaskDelete(action_task_handle_);
+      action_task_handle_ = nullptr;
+    }
+    is_action_in_progress_ = false;
+    xQueueReset(action_queue_);
+    QueueAction(ACTION_HOME, 1, 1000, 0, 0);
+    return ESP_OK;
+  }
+
+  bool IsBusy() const { return is_action_in_progress_; }
+
   ~EDARobotDogController() {
     if (action_task_handle_ != nullptr) {
       vTaskDelete(action_task_handle_);
@@ -396,4 +428,22 @@ void InitializeEDARobotDogController() {
     g_dog_controller = new EDARobotDogController();
     ESP_LOGI(TAG, "EDA机器狗控制器已初始化并注册MCP工具");
   }
+}
+
+// ==================== 网页控制接口实现 ====================
+// 放在 g_dog_controller 之后，纯委托，不复制任何动作逻辑。
+
+esp_err_t DogWebSubmitMotion(DogMotion motion, int steps, int period,
+                             int direction) {
+  if (g_dog_controller == nullptr) return ESP_ERR_INVALID_STATE;
+  return g_dog_controller->SubmitMotion(motion, steps, period, direction);
+}
+
+esp_err_t DogWebEmergencyStop() {
+  if (g_dog_controller == nullptr) return ESP_ERR_INVALID_STATE;
+  return g_dog_controller->EmergencyStop();
+}
+
+bool DogWebIsBusy() {
+  return g_dog_controller != nullptr && g_dog_controller->IsBusy();
 }

@@ -42,10 +42,14 @@ dependencies:
   espressif2022/esp_emote_gfx: ^1.1.2
   espressif/adc_mic: ^0.2.1
   espressif/esp_mmap_assets: '>=1.2'
-  txp666/otto-emoji-gif-component:
-    version: 1.0.2
-    rules:
-    - if: target not in [esp32c5]
+  # 2026-11-18 屏蔽：txp666/otto-emoji-gif-component 1.0.2 已被组件仓库下架（yanked），
+  # 导致依赖求解直接失败。该组件只被 main/boards/otto-robot/ 引用，
+  # 本项目使用 EDA_ROBOT_PRO 板型，不会编译该目录。
+  # 若日后需要编译 OTTO 板，请先把它改回一个未被下架的版本。
+  # txp666/otto-emoji-gif-component:
+  #   version: 1.0.2
+  #   rules:
+  #   - if: target not in [esp32c5]
   
   espressif/adc_battery_estimation: ^0.2.0
   espressif/esp_new_jpeg: ^0.6.1

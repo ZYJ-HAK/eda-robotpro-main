@@ -5,8 +5,11 @@
 #include "application.h"
 #include "button.h"
 #include "config.h"
+#include "dog_web_config.h"
+#include "dog_web_server.h"
 #include "mcp_server.h"
 
+#include <freertos/task.h>
 #include <wifi_station.h>
 #include <esp_log.h>
 #include <driver/i2c_master.h>
@@ -118,6 +121,31 @@ public:
     }
 
 
+
+    /*
+     * 网络启动。
+     *
+     * DOG_WEB_AP_AT_BOOT = 1（默认，对应「通电即热点」的需求）：
+     *   不启动 STA，直接开热点并把手机引导到内置网页。
+     *   代价是此模式下云端语音不可用 —— 热点与 STA 共用一颗射频，
+     *   同时开会互相拖慢，也会让唤醒链路时断时续。
+     *
+     * DOG_WEB_AP_AT_BOOT = 0：走小智原有流程（连 WiFi、语音可用），
+     *   需要遥控时再进热点。改这一个宏即可，不必改本文件。
+     */
+    virtual void StartNetwork() override {
+#if DOG_WEB_AP_AT_BOOT
+        ESP_LOGI(TAG, "开机进入热点模式，云端语音本次不可用");
+        DogWebServer::GetInstance().Start();
+        while (true) {
+            vTaskDelay(pdMS_TO_TICKS(10000));
+        }
+#else
+        WifiBoard::StartNetwork();
+        // 能走到这里说明 STA 已经连上，此时再开热点会抢占射频，
+        // 所以仅在需要遥控时由调用方显式触发。
+#endif
+    }
 
     virtual AudioCodec* GetAudioCodec() override {
         static NoAudioCodecSimplex audio_codec(AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE,
